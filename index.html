@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Tokyo Train · Slow Magic</title>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet"/>
 <style>
@@ -16,6 +16,12 @@ html,body{
   width:100%;min-height:100vh;background:var(--bg);
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;font-family:'Silkscreen',monospace;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  overscroll-behavior:none;
+}
+@supports (min-height: 100dvh){
+  html,body{min-height:100dvh;}
 }
 #frame{
   position:relative;width:480px;height:480px;
@@ -25,9 +31,12 @@ html,body{
   border-radius:0;overflow:hidden;flex-shrink:0;
   image-rendering:pixelated;
 }
+
 @media(max-width:500px){
   #frame{width:100vw;height:100vw;border-left:none;border-right:none;border-radius:0;}
+  #inp{font-size:16px;}
 }
+
 @media(max-height:500px){
   #frame{height:100vh;width:100vh;max-width:100vw;}
 }
@@ -95,6 +104,12 @@ html,body{
 #submit-btn:hover{background:rgba(200,169,110,0.12);}
 #submit-btn:active{background:var(--accent);color:#000;}
 #submit-btn.loading{color:var(--dim);border-color:var(--dim);pointer-events:none;}
+
+input, textarea, select { font-size:16px; }
+@media(min-width:501px){
+  input, textarea, select { font-size:inherit; }
+}
+
 
 /* ── DEBUG HUD ── */
 #debug-hud{
@@ -300,6 +315,38 @@ scene.fog=new THREE.Fog(0xf0e0c8,9,20);
 const camera=new THREE.PerspectiveCamera(65,W/H,0.05,25);
 camera.position.set(-0.716, -0.162, 2.389);
 camera.lookAt(-0.681, -0.066, -2.315);
+
+function resizeRendererToDisplaySize(){
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(1, Math.round(rect.width));
+  const cssH = Math.max(1, Math.round(rect.height));
+  if (canvas.width !== cssW || canvas.height !== cssH) {
+    renderer.setSize(cssW, cssH, false);
+    camera.aspect = cssW / cssH;
+    camera.updateProjectionMatrix();
+  }
+}
+
+function wakeApp(){
+  resizeRendererToDisplaySize();
+  try{ renderer.render(scene, camera); }catch(e){}
+}
+
+window.addEventListener('load', function(){
+  wakeApp();
+  setTimeout(wakeApp, 60);
+  setTimeout(wakeApp, 250);
+});
+
+window.addEventListener('resize', wakeApp, {passive:true});
+window.addEventListener('orientationchange', function(){ setTimeout(wakeApp, 120); }, {passive:true});
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) setTimeout(wakeApp, 60);
+});
+
+['touchstart','pointerdown','click','focusin'].forEach(function(evt){
+  window.addEventListener(evt, wakeApp, {passive:true});
+});
 
 // ── TEXTURES ──────────────────────────────────────────────────────────────
 function pTex(fn,w,h){
@@ -718,6 +765,7 @@ cvs.addEventListener('touchend',onDragEnd);
 
 function animate(){
   requestAnimationFrame(animate);
+  resizeRendererToDisplaySize();
   t+=0.016; skyScroll+=2.8;
   updateSky();
 
